@@ -74,7 +74,7 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
                         <thead className="table-light">
                             <tr>
                                 <th>Item</th>
-                                <th>Ramo Pol</th>
+                                <th>Cobertura</th>
                                 <th>Rubro</th>
                                 <th>Valor Movimiento</th>
                                 <th>Valor Asegurado</th>
@@ -86,11 +86,11 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
                                 const originalIndex = tablaData.findIndex(r => r === row);
                                 return (
                                     <tr
-                                        key={`${row.itemNum}-${row.rubroNombre}`}
+                                        key={`${row.itemNum}-${row.rubroNombre}-${row.nombreCobertura}`}
                                         className={row.error ? 'table-danger' : ''}
                                     >
                                         <td className="text-center">{row.itemNum}</td>
-                                        <td>{row.ramoPolNombre}</td>
+                                        <td>{row.nombreCobertura}</td>
                                         <td>{row.rubroNombre}</td>
                                         <td>
                                             <input
@@ -101,8 +101,8 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
                                             />
                                             {row.error && <div className="invalid-feedback d-block small">{row.error}</div>}
                                         </td>
-                                        <td className="text-end">$ {row.vaCalculado.toLocaleString()}</td>
-                                        <td className="text-end">$ {row.veCalculado.toLocaleString()}</td>
+                                        <td className="text-end">$ {row.vaCalculado.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className="text-end">$ {row.veCalculado.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </tr>
                                 );
                             })}

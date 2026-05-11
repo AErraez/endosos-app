@@ -23,7 +23,32 @@ export async function GET(request) {
     }
 }
 
-// Add this to your app/api/data/route.js
+export async function POST(request) {
+    const body = await request.json();
+    const { ciudad, ramo, poliza, vigencia, items, endosos } = body;
+
+    try {
+        const client = await clientPromise;
+        const db = client.db("Data");
+
+        const existing = await db.collection("Polizas").findOne({ ciudad, ramo, poliza, vigencia });
+        if (existing) {
+            return NextResponse.json(
+                { error: `Ya existe una póliza: ${ciudad} / ${ramo} / ${poliza} / ${vigencia}` },
+                { status: 409 }
+            );
+        }
+
+        const result = await db.collection("Polizas").insertOne({
+            ciudad, ramo, poliza, vigencia, items, endosos: endosos ?? []
+        });
+        return NextResponse.json({ success: true, _id: result.insertedId });
+    } catch (e) {
+        console.error(e);
+        return NextResponse.json({ error: e.message }, { status: 500 });
+    }
+}
+
 export async function PATCH(request) {
     const body = await request.json();
     const { polizaId, updates, numEndoso, tipoMov } = body;

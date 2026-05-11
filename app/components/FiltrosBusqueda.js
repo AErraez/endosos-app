@@ -1,6 +1,23 @@
 'use client';
 
-export default function FiltrosBusqueda({ db, sucursal, setSucursal, ramo, setRamo, poliza, setPoliza, vigencia, setVigencia, onBuscar }) {
+// ── Edit these arrays to add/remove options ───────────────────────────────────
+const SUCURSALES = [
+    "QUITO",
+    "GUAYAQUIL",
+    "ES GUAYAQUIL",
+];
+
+const RAMOS = [
+    "MULTIRIESGO INDUSTRIAL",
+];
+
+const VIGENCIAS = [
+    "2026-2027",
+    "2025-2026",
+];
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function FiltrosBusqueda({ sucursal, setSucursal, ramo, setRamo, poliza, setPoliza, vigencia, setVigencia, onBuscar }) {
     return (
         <div className="row py-3 align-items-end bg-light border rounded mb-3 mx-0">
             <div className="col-md-2">
@@ -11,7 +28,7 @@ export default function FiltrosBusqueda({ db, sucursal, setSucursal, ramo, setRa
                     onChange={(e) => { setSucursal(e.target.value); setRamo(""); setPoliza(""); setVigencia(""); }}
                 >
                     <option value="">Seleccione...</option>
-                    {Object.keys(db).map(s => <option key={s} value={s}>{s}</option>)}
+                    {SUCURSALES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
             </div>
             <div className="col-md-2">
@@ -23,7 +40,7 @@ export default function FiltrosBusqueda({ db, sucursal, setSucursal, ramo, setRa
                     onChange={(e) => { setRamo(e.target.value); setPoliza(""); setVigencia(""); }}
                 >
                     <option value="">Seleccione...</option>
-                    {sucursal && Object.keys(db[sucursal] || {}).map(r => <option key={r} value={r}>{r}</option>)}
+                    {RAMOS.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
             </div>
             <div className="col-md-2">
@@ -41,13 +58,12 @@ export default function FiltrosBusqueda({ db, sucursal, setSucursal, ramo, setRa
                 <label>Vigencia:</label>
                 <select
                     className="form-select"
-                    disabled={!poliza || !db[sucursal]?.[ramo]?.[poliza]}
+                    disabled={!poliza}
                     value={vigencia}
                     onChange={(e) => setVigencia(e.target.value)}
                 >
                     <option value="">Seleccione...</option>
-                    {poliza && db[sucursal]?.[ramo]?.[poliza] &&
-                        Object.keys(db[sucursal][ramo][poliza]).map(v => <option key={v} value={v}>{v}</option>)}
+                    {VIGENCIAS.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
             </div>
             <div className="col-md-3 text-end">

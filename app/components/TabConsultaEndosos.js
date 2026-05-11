@@ -67,8 +67,8 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
 
             {/* History table */}
             <div className="table-responsive">
-                <table className="table table-sm table-hover align-middle">
-                    <thead className="table-dark">
+                <table className="table table-bordered table-hover">
+                    <thead className="table-light">
                         <tr>
                             <th>Acción</th>
                             <th>Item</th>
@@ -103,7 +103,7 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
                                     <td><strong>{d.endoso_id}</strong></td>
                                     <td>{d.ramo}</td>
                                     <td>{d.rubro}</td>
-                                    <td className="text-end">$ {d.valor?.toLocaleString()}</td>
+                                    <td className="text-end">$ {d.valor?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td>
                                         <span className={`badge ${d.estado === "anulado" ? "bg-secondary" : "bg-success"}`}>
                                             {d.estado === "anulado" ? "ANULADO" : "ACTIVO"}

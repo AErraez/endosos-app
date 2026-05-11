@@ -3,12 +3,7 @@ import { useState } from 'react';
 import FiltrosBusqueda from './components/FiltrosBusqueda';
 import TabMovimientos from './components/TabMovimientos';
 import TabConsultaEndosos from './components/TabConsultaEndosos';
-
-// Placeholder DB — replace with actual fetch or remove when using API
-const MOCK_DB = {
-    "QUITO": { "MULTIRIESGO": { "51234": { "2026-2027": {} } } },
-    "GUAYAQUIL": { "MULTIRIESGO": { "51234": { "2026-2027": {} } } }
-};
+import RegistroPoliza from './components/RegistroPoliza';
 
 export default function EndososPage() {
     // ── Filter state ──────────────────────────────────────────────
@@ -18,7 +13,6 @@ export default function EndososPage() {
     const [vigencia, setVigencia] = useState("");
 
     // ── Data state ────────────────────────────────────────────────
-    const [db] = useState(MOCK_DB);
     const [currentDoc, setCurrentDoc] = useState(null);
     const [tablaData, setTablaData] = useState([]);
     const [busquedaRealizada, setBusquedaRealizada] = useState(false);
@@ -29,6 +23,9 @@ export default function EndososPage() {
 
     // ── Active tab ────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState("movimientos");
+
+    // ── Section (gestionar endosos vs registrar póliza) ───────────
+    const [sectionTab, setSectionTab] = useState("gestionar");
 
     // ── Handlers ──────────────────────────────────────────────────
     const handleBuscar = async () => {
@@ -131,62 +128,92 @@ export default function EndososPage() {
                     </li>
                 </ul>
 
-                {/* Search filters — always visible */}
-                <FiltrosBusqueda
-                    db={db}
-                    sucursal={sucursal} setSucursal={setSucursal}
-                    ramo={ramo} setRamo={setRamo}
-                    poliza={poliza} setPoliza={setPoliza}
-                    vigencia={vigencia} setVigencia={setVigencia}
-                    onBuscar={handleBuscar}
-                />
-
-                {/* Tab navigation — only shown after a search */}
-                {busquedaRealizada && (
-                    <>
-                        <ul className="nav nav-tabs mt-3 mb-0">
-                            <li className="nav-item">
-                                <button
-                                    className={`nav-link ${activeTab === "movimientos" ? "active fw-semibold" : ""}`}
-                                    onClick={() => setActiveTab("movimientos")}
-                                >
-                                    ✏️ Movimientos
-                                </button>
-                            </li>
-                            <li className="nav-item">
-                                <button
-                                    className={`nav-link ${activeTab === "consulta" ? "active fw-semibold" : ""}`}
-                                    onClick={() => setActiveTab("consulta")}
-                                >
-                                    📋 Consulta de Endosos
-                                </button>
-                            </li>
-                        </ul>
-
-                        <div className="border border-top-0 rounded-bottom p-3">
-                            {activeTab === "movimientos" && (
-                                <TabMovimientos
-                                    tablaData={tablaData}
-                                    setTablaData={setTablaData}
-                                    tipoMov={tipoMov}
-                                    setTipoMov={setTipoMov}
-                                    numEndoso={numEndoso}
-                                    setNumEndoso={setNumEndoso}
-                                    onGuardar={handleGuardar}
-                                    isGuardarDisabled={isGuardarDisabled}
-                                />
-                            )}
-
-                            {activeTab === "consulta" && (
-                                <TabConsultaEndosos
-                                    currentDoc={currentDoc}
-                                    tablaData={tablaData}
-                                    onRefresh={handleBuscar}
-                                />
-                            )}
-                        </div>
-                    </>
+                {/* Search filters — only in gestionar mode */}
+                {sectionTab === "gestionar" && (
+                    <FiltrosBusqueda
+                        sucursal={sucursal} setSucursal={setSucursal}
+                        ramo={ramo} setRamo={setRamo}
+                        poliza={poliza} setPoliza={setPoliza}
+                        vigencia={vigencia} setVigencia={setVigencia}
+                        onBuscar={handleBuscar}
+                    />
                 )}
+
+                {/* Section tabs — between searcher and endosos nav */}
+                <ul className="nav nav-tabs mb-0 mt-2">
+                    <li className="nav-item">
+                        <button
+                            className={`nav-link ${sectionTab === "gestionar" ? "active fw-semibold" : ""}`}
+                            onClick={() => setSectionTab("gestionar")}
+                        >
+                            Gestionar Endosos
+                        </button>
+                    </li>
+                    <li className="nav-item">
+                        <button
+                            className={`nav-link ${sectionTab === "registrar" ? "active fw-semibold" : ""}`}
+                            onClick={() => setSectionTab("registrar")}
+                        >
+                            Registrar Póliza
+                        </button>
+                    </li>
+                </ul>
+
+                <div className="border border-top-0 rounded-bottom p-3 mb-3">
+                    {sectionTab === "registrar" && <RegistroPoliza />}
+
+                    {sectionTab === "gestionar" && busquedaRealizada && (
+                        <>
+                            <ul className="nav nav-tabs mt-1 mb-0">
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "movimientos" ? "active fw-semibold" : ""}`}
+                                        onClick={() => setActiveTab("movimientos")}
+                                    >
+                                        ✏️ Movimientos
+                                    </button>
+                                </li>
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "consulta" ? "active fw-semibold" : ""}`}
+                                        onClick={() => setActiveTab("consulta")}
+                                    >
+                                        📋 Consulta de Endosos
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div className="border border-top-0 rounded-bottom p-3">
+                                {activeTab === "movimientos" && (
+                                    <TabMovimientos
+                                        tablaData={tablaData}
+                                        setTablaData={setTablaData}
+                                        tipoMov={tipoMov}
+                                        setTipoMov={setTipoMov}
+                                        numEndoso={numEndoso}
+                                        setNumEndoso={setNumEndoso}
+                                        onGuardar={handleGuardar}
+                                        isGuardarDisabled={isGuardarDisabled}
+                                    />
+                                )}
+
+                                {activeTab === "consulta" && (
+                                    <TabConsultaEndosos
+                                        currentDoc={currentDoc}
+                                        tablaData={tablaData}
+                                        onRefresh={handleBuscar}
+                                    />
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {sectionTab === "gestionar" && !busquedaRealizada && (
+                        <p className="text-muted text-center py-4 mb-0">
+                            Realice una búsqueda para gestionar los endosos de una póliza.
+                        </p>
+                    )}
+                </div>
             </main>
         </div>
     );
