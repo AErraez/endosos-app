@@ -4,11 +4,11 @@
 const SUCURSALES = [
     "QUITO",
     "GUAYAQUIL",
-    "ES GUAYAQUIL",
+    "ES GUAYAQUIL","ES QUITO"
 ];
 
 const RAMOS = [
-    "MULTIRIESGO INDUSTRIAL",
+    "MULTIRIESGO INDUSTRIAL", "INCENDIO"
 ];
 
 const VIGENCIAS = [
