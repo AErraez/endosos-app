@@ -31,12 +31,19 @@ function parseXls(arrayBuffer) {
     const headerIdx = allRows.findIndex(r => String(r[0]).trim() === 'Sucursal');
     if (headerIdx === -1) throw new Error('No se encontró la fila de encabezado (Sucursal).');
 
-    const footerIdx = allRows.findIndex(
+    // Drop columns whose header cell is empty
+    const headerRow = allRows[headerIdx];
+    const emptyCols = new Set(
+        headerRow.reduce((acc, v, i) => { if (String(v).trim() === '') acc.push(i); return acc; }, [])
+    );
+    const rows = allRows.map(row => row.filter((_, i) => !emptyCols.has(i)));
+
+    const footerIdx = rows.findIndex(
         (r, i) => i > headerIdx && r.some(c => String(c).includes('Page') || String(c).includes('Página'))
     );
-    const endIdx = footerIdx === -1 ? allRows.length : footerIdx;
+    const endIdx = footerIdx === -1 ? rows.length : footerIdx;
 
-    const dataRows = allRows
+    const dataRows = rows
         .slice(headerIdx + 1, endIdx)
         .filter(r => String(r[0]).trim() !== '');
 
@@ -65,20 +72,20 @@ export default function RegistroPoliza() {
                 const rows = parseXls(ev.target.result);
                 const first = rows[0];
 
-                const year1 = excelDateToYear(first[5]);
-                const year2 = excelDateToYear(first[6]);
+                const year1 = excelDateToYear(first[4]);
+                const year2 = excelDateToYear(first[5]);
                 const extractedMeta = {
                     ciudad: String(first[0]).trim(),
                     ramo: String(first[1]).trim(),
-                    poliza: String(first[3]).trim(),
+                    poliza: String(first[2]).trim(),
                     vigencia: `${year1}-${year2}`,
                 };
 
                 const seen = new Set();
                 const combos = [];
                 for (const row of rows) {
-                    const rubro = String(row[11]).trim();
-                    const nombre = String(row[13]).trim();
+                    const rubro = String(row[10]).trim();
+                    const nombre = String(row[12]).trim();
                     const key = `${rubro}||${nombre}`;
                     if (rubro && !seen.has(key)) {
                         seen.add(key);
@@ -118,18 +125,18 @@ export default function RegistroPoliza() {
 
     function buildPreview() {
         const filtered = parsedRows.filter(row => {
-            const key = `${String(row[11]).trim()}||${String(row[13]).trim()}`;
+            const key = `${String(row[10]).trim()}||${String(row[12]).trim()}`;
             return selectedCombos.has(key);
         });
 
         const itemMap = new Map();
         for (const row of filtered) {
-            const itemId = String(row[7]).trim();
+            const itemId = String(row[6]).trim();
             if (!itemMap.has(itemId)) itemMap.set(itemId, []);
             itemMap.get(itemId).push({
-                nombre: String(row[13]).trim(),
-                rubro: String(row[11]).trim(),
-                valor_asegurado: parseFloat(row[15]) || 0,
+                nombre: String(row[12]).trim(),
+                rubro: String(row[10]).trim(),
+                valor_asegurado: parseFloat(row[14]) || 0,
                 valor_endosado_total: 0,
                 movimiento_reciente: 0,
             });
