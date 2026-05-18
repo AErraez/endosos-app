@@ -31,25 +31,25 @@ function parseXls(arrayBuffer) {
     const headerIdx = allRows.findIndex(r => String(r[0]).trim() === 'Sucursal');
     if (headerIdx === -1) throw new Error('No se encontró la fila de encabezado (Sucursal).');
 
-    // Drop columns whose header cell is empty
-    const headerRow = allRows[headerIdx];
-    const emptyCols = new Set(
-        headerRow.reduce((acc, v, i) => { if (String(v).trim() === '') acc.push(i); return acc; }, [])
-    );
-    const rows = allRows.map(row => row.filter((_, i) => !emptyCols.has(i)));
-
-    const footerIdx = rows.findIndex(
+    const footerIdx = allRows.findIndex(
         (r, i) => i > headerIdx && r.some(c => String(c).includes('Page') || String(c).includes('Página'))
     );
-    const endIdx = footerIdx === -1 ? rows.length : footerIdx;
+    const endIdx = footerIdx === -1 ? allRows.length : footerIdx;
 
-    const dataRows = rows
+    const dataRows = allRows
         .slice(headerIdx + 1, endIdx)
         .filter(r => String(r[0]).trim() !== '');
 
     if (dataRows.length === 0) throw new Error('No se encontraron filas de datos.');
 
-    return dataRows;
+    // Drop columns that are empty across every data row
+    const numCols = dataRows[0].length;
+    const emptyCols = new Set(
+        Array.from({ length: numCols }, (_, i) => i)
+            .filter(i => dataRows.every(row => String(row[i] ?? '').trim() === ''))
+    );
+
+    return dataRows.map(row => row.filter((_, i) => !emptyCols.has(i)));
 }
 
 export default function RegistroPoliza() {
@@ -130,12 +130,18 @@ export default function RegistroPoliza() {
         });
 
         const itemMap = new Map();
+        const seen = new Set();
         for (const row of filtered) {
             const itemId = String(row[6]).trim();
+            const rubro = String(row[10]).trim();
+            const nombre = String(row[12]).trim();
+            const dedupKey = `${itemId}||${rubro}||${nombre}`;
+            if (seen.has(dedupKey)) continue;
+            seen.add(dedupKey);
             if (!itemMap.has(itemId)) itemMap.set(itemId, []);
             itemMap.get(itemId).push({
-                nombre: String(row[12]).trim(),
-                rubro: String(row[10]).trim(),
+                nombre,
+                rubro,
                 valor_asegurado: parseFloat(row[14]) || 0,
                 valor_endosado_total: 0,
                 movimiento_reciente: 0,
