@@ -35,7 +35,7 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
             item.veCalculado = item.veOriginal + valMov;
             item.error = valMov < 0
                 ? "Valores negativos no permitidos."
-                : item.veCalculated > item.vaOriginal
+                : item.veCalculado > item.vaOriginal
                     ? "Suma Endosada no puede superar la Asegurada."
                     : "";
         }
