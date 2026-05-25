@@ -6,12 +6,6 @@ import TabConsultaEndosos from './components/TabConsultaEndosos';
 import RegistroPoliza from './components/RegistroPoliza';
 
 export default function EndososPage() {
-    // ── Filter state ──────────────────────────────────────────────
-    const [sucursal, setSucursal] = useState("");
-    const [ramo, setRamo] = useState("");
-    const [poliza, setPoliza] = useState("");
-    const [vigencia, setVigencia] = useState("");
-
     // ── Data state ────────────────────────────────────────────────
     const [currentDoc, setCurrentDoc] = useState(null);
     const [tablaData, setTablaData] = useState([]);
@@ -28,11 +22,9 @@ export default function EndososPage() {
     const [sectionTab, setSectionTab] = useState("gestionar");
 
     // ── Handlers ──────────────────────────────────────────────────
-    const handleBuscar = async () => {
-        if (!sucursal || !ramo || !poliza || !vigencia) return;
-
+    const fetchPoliza = async ({ ciudad, ramo, poliza, vigencia }) => {
         const res = await fetch(
-            `/api/data?ciudad=${sucursal}&ramo=${ramo}&poliza=${poliza}&vigencia=${vigencia}`
+            `/api/data?ciudad=${encodeURIComponent(ciudad)}&ramo=${encodeURIComponent(ramo)}&poliza=${encodeURIComponent(poliza)}&vigencia=${encodeURIComponent(vigencia)}`
         );
 
         if (!res.ok) {
@@ -70,6 +62,8 @@ export default function EndososPage() {
         setTipoMov("endoso");
     };
 
+    const handleSelectPoliza = (p) => fetchPoliza({ ciudad: p.ciudad, ramo: p.ramo, poliza: p.poliza, vigencia: p.vigencia });
+
     const handleGuardar = async () => {
         const updatedItems = currentDoc.items.map(item => {
             const updatedCoverages = item.coberturas.map(cob => {
@@ -98,7 +92,7 @@ export default function EndososPage() {
 
         if (res.ok) {
             alert("Guardado exitosamente");
-            handleBuscar();
+            fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia });
         }
     };
 
@@ -128,19 +122,7 @@ export default function EndososPage() {
                     </li>
                 </ul>
 
-                {/* Search filters — only in gestionar mode */}
-                {sectionTab === "gestionar" && (
-                    <FiltrosBusqueda
-                        sucursal={sucursal} setSucursal={setSucursal}
-                        ramo={ramo} setRamo={setRamo}
-                        poliza={poliza} setPoliza={setPoliza}
-                        vigencia={vigencia} setVigencia={setVigencia}
-                        onBuscar={handleBuscar}
-                    />
-                )}
-
-                {/* Section tabs — between searcher and endosos nav */}
-                <ul className="nav nav-tabs mb-0 mt-2">
+                <ul className="nav nav-tabs mb-0">
                     <li className="nav-item">
                         <button
                             className={`nav-link ${sectionTab === "gestionar" ? "active fw-semibold" : ""}`}
@@ -161,6 +143,10 @@ export default function EndososPage() {
 
                 <div className="border border-top-0 rounded-bottom p-3 mb-3">
                     {sectionTab === "registrar" && <RegistroPoliza />}
+
+                    {sectionTab === "gestionar" && (
+                        <FiltrosBusqueda onSelectPoliza={handleSelectPoliza} />
+                    )}
 
                     {sectionTab === "gestionar" && busquedaRealizada && (
                         <>
@@ -201,7 +187,7 @@ export default function EndososPage() {
                                     <TabConsultaEndosos
                                         currentDoc={currentDoc}
                                         tablaData={tablaData}
-                                        onRefresh={handleBuscar}
+                                        onRefresh={() => fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia })}
                                     />
                                 )}
                             </div>
@@ -210,7 +196,7 @@ export default function EndososPage() {
 
                     {sectionTab === "gestionar" && !busquedaRealizada && (
                         <p className="text-muted text-center py-4 mb-0">
-                            Realice una búsqueda para gestionar los endosos de una póliza.
+                            Seleccione una póliza de la tabla para gestionar sus endosos.
                         </p>
                     )}
                 </div>

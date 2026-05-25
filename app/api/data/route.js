@@ -10,8 +10,15 @@ export async function GET(request) {
 
     try {
         const client = await clientPromise;
-        const db = client.db("Data"); // Your DB name
-        
+        const db = client.db("Data");
+
+        if (!ciudad && !ramo && !poliza && !vigencia) {
+            const list = await db.collection("Polizas")
+                .find({}, { projection: { _id: 1, ciudad: 1, ramo: 1, poliza: 1, vigencia: 1 } })
+                .toArray();
+            return NextResponse.json(list);
+        }
+
         const policy = await db.collection("Polizas").findOne({
             ciudad, ramo, poliza, vigencia
         });
