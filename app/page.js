@@ -3,6 +3,7 @@ import { useState } from 'react';
 import FiltrosBusqueda from './components/FiltrosBusqueda';
 import TabMovimientos from './components/TabMovimientos';
 import TabConsultaEndosos from './components/TabConsultaEndosos';
+import TabInclusion from './components/TabInclusion';
 import RegistroPoliza from './components/RegistroPoliza';
 
 export default function EndososPage() {
@@ -167,6 +168,14 @@ export default function EndososPage() {
                                         📋 Consulta de Endosos
                                     </button>
                                 </li>
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "inclusion" ? "active fw-semibold" : ""}`}
+                                        onClick={() => setActiveTab("inclusion")}
+                                    >
+                                        ➕ Inclusión
+                                    </button>
+                                </li>
                             </ul>
 
                             <div className="border border-top-0 rounded-bottom p-3">
@@ -188,6 +197,13 @@ export default function EndososPage() {
                                         currentDoc={currentDoc}
                                         tablaData={tablaData}
                                         onRefresh={() => fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia })}
+                                    />
+                                )}
+
+                                {activeTab === "inclusion" && (
+                                    <TabInclusion
+                                        currentDoc={currentDoc}
+                                        onSaved={() => fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia })}
                                     />
                                 )}
                             </div>
