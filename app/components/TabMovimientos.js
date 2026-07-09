@@ -1,6 +1,6 @@
 'use client';
 
-export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTipoMov, numEndoso, setNumEndoso, onGuardar, isGuardarDisabled }) {
+export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTipoMov, numEndoso, setNumEndoso, onGuardar, isGuardarDisabled, isSaving }) {
 
     const uniqueItems = ["TODOS", ...new Set(tablaData.map(row => row.itemNum))];
     const [selectedItem, setSelectedItem] = useState("TODOS");
@@ -129,7 +129,7 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
                         disabled={isGuardarDisabled()}
                         onClick={onGuardar}
                     >
-                        Guardar Cambios
+                        {isSaving ? "Guardando..." : "Guardar Cambios"}
                     </button>
                 </div>
             </div>

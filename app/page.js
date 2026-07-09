@@ -15,6 +15,7 @@ export default function EndososPage() {
     // ── Movimiento state (shared so both tabs can read it) ────────
     const [tipoMov, setTipoMov] = useState("endoso");
     const [numEndoso, setNumEndoso] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
 
     // ── Active tab ────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState("movimientos");
@@ -66,6 +67,9 @@ export default function EndososPage() {
     const handleSelectPoliza = (p) => fetchPoliza({ ciudad: p.ciudad, ramo: p.ramo, poliza: p.poliza, vigencia: p.vigencia });
 
     const handleGuardar = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+
         const updatedItems = currentDoc.items.map(item => {
             const updatedCoverages = item.coberturas.map(cob => {
                 const row = tablaData.find(
@@ -81,19 +85,23 @@ export default function EndososPage() {
             return { ...item, coberturas: updatedCoverages };
         });
 
-        const res = await fetch('/api/data', {
-            method: 'PATCH',
-            body: JSON.stringify({
-                polizaId: currentDoc._id,
-                updates: updatedItems,
-                numEndoso,
-                tipoMov
-            })
-        });
+        try {
+            const res = await fetch('/api/data', {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    polizaId: currentDoc._id,
+                    updates: updatedItems,
+                    numEndoso,
+                    tipoMov
+                })
+            });
 
-        if (res.ok) {
-            alert("Guardado exitosamente");
-            fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia });
+            if (res.ok) {
+                alert("Guardado exitosamente");
+                await fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia });
+            }
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -102,7 +110,7 @@ export default function EndososPage() {
         const hasMovement = tablaData.some(
             row => row.movimiento !== 0 && row.movimiento !== ""
         );
-        return hasErrors || !hasMovement || numEndoso.trim() === "";
+        return isSaving || hasErrors || !hasMovement || numEndoso.trim() === "";
     };
 
     // ── Render ────────────────────────────────────────────────────
@@ -189,6 +197,7 @@ export default function EndososPage() {
                                         setNumEndoso={setNumEndoso}
                                         onGuardar={handleGuardar}
                                         isGuardarDisabled={isGuardarDisabled}
+                                        isSaving={isSaving}
                                     />
                                 )}
 
