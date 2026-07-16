@@ -50,7 +50,7 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
     // --- Formato de modificación (Item / Ramo / Rubro / sumas) ---
     const fmtMoney = (n) => {
         const num = isNaN(n) ? 0 : n;
-        return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return num.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const buildModificacionOutput = (data) => {
@@ -195,8 +195,8 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
                                             />
                                             {row.error && <div className="invalid-feedback d-block small">{row.error}</div>}
                                         </td>
-                                        <td className="text-end">$ {row.vaCalculado.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        <td className="text-end">$ {row.veCalculado.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className="text-end">$ {row.vaCalculado.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td className="text-end">$ {row.veCalculado.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </tr>
                                 );
                             })}
