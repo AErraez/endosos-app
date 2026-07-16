@@ -57,20 +57,25 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
         // Solo filas realmente modificadas
         const movidas = data.filter(row => (parseFloat(row.movimiento) || 0) !== 0);
 
-        // Agrupar por Item (dirección) + Rubro, combinando coberturas (ramo) repetidas
+        // Agrupar por Item (dirección) + Rubro, combinando coberturas (ramo) SOLO
+        // cuando anterior, movimiento y actual coinciden exactamente
         const groups = [];
         const groupIndex = new Map();
 
         movidas.forEach(row => {
-            const key = `${row.itemNum}||${row.rubroNombre}`;
+            const anterior = row.vaOriginal;
+            const actual = row.vaCalculado;
+            const diff = actual - anterior;
+            const key = `${row.itemNum}||${row.rubroNombre}||${anterior.toFixed(2)}||${diff.toFixed(2)}||${actual.toFixed(2)}`;
+
             if (!groupIndex.has(key)) {
                 groupIndex.set(key, groups.length);
                 groups.push({
                     itemNum: row.itemNum,
                     rubroNombre: row.rubroNombre,
                     ramos: [row.nombreCobertura],
-                    anterior: row.vaOriginal,
-                    actual: row.vaCalculado
+                    anterior,
+                    actual
                 });
             } else {
                 const g = groups[groupIndex.get(key)];
@@ -92,16 +97,19 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
             const diffStr = fmtMoney(Math.abs(diff));
             const actualStr = fmtMoney(g.actual);
 
-            const labelWidth = Math.max(label1.length, label2.length, label3.length) + 3;
-            const pad = (label) => label + ' '.repeat(labelWidth - label.length);
-
-            const line1 = `${pad(label1)}US$ ${anteriorStr}`;
-            const line2 = `${pad(label2)}US$ ${diffStr}`;
-            const line3 = `${pad(label3)}US$ ${actualStr}`;
-
+            // Alinear los valores a la derecha para que dólares y centavos coincidan
             const maxValLen = Math.max(anteriorStr.length, diffStr.length, actualStr.length);
-            const sepIndent = labelWidth + 4; // largo de "US$ "
-            const sepLine = ' '.repeat(sepIndent) + '='.repeat(maxValLen);
+            const padValue = (s) => ' '.repeat(maxValLen - s.length) + s;
+
+            const labelWidth = Math.max(label1.length, label2.length, label3.length) + 3;
+            const padLabel = (label) => label + ' '.repeat(labelWidth - label.length);
+
+            const line1 = `${padLabel(label1)}US$ ${padValue(anteriorStr)}`;
+            const line2 = `${padLabel(label2)}US$ ${padValue(diffStr)}`;
+            const line3 = `${padLabel(label3)}US$ ${padValue(actualStr)}`;
+
+            // El separador empieza justo bajo "US$" y termina en el último centavo
+            const sepLine = ' '.repeat(labelWidth) + '='.repeat(4 + maxValLen);
 
             return [
                 `Item # ${g.itemNum}`,
