@@ -1,9 +1,12 @@
 'use client';
 
+import { useState } from 'react';
+
 export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTipoMov, numEndoso, setNumEndoso, onGuardar, isGuardarDisabled, isSaving }) {
 
     const uniqueItems = ["TODOS", ...new Set(tablaData.map(row => row.itemNum))];
     const [selectedItem, setSelectedItem] = useState("TODOS");
+    const [copyFeedback, setCopyFeedback] = useState("");
 
     const filteredData = selectedItem === "TODOS"
         ? tablaData
@@ -42,6 +45,89 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
 
         item.movimiento = value;
         setTablaData(newData);
+    };
+
+    // --- Formato de modificación (Item / Ramo / Rubro / sumas) ---
+    const fmtMoney = (n) => {
+        const num = isNaN(n) ? 0 : n;
+        return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const buildModificacionOutput = (data) => {
+        // Solo filas realmente modificadas
+        const movidas = data.filter(row => (parseFloat(row.movimiento) || 0) !== 0);
+
+        // Agrupar por Item (dirección) + Rubro, combinando coberturas (ramo) repetidas
+        const groups = [];
+        const groupIndex = new Map();
+
+        movidas.forEach(row => {
+            const key = `${row.itemNum}||${row.rubroNombre}`;
+            if (!groupIndex.has(key)) {
+                groupIndex.set(key, groups.length);
+                groups.push({
+                    itemNum: row.itemNum,
+                    rubroNombre: row.rubroNombre,
+                    ramos: [row.nombreCobertura],
+                    anterior: row.vaOriginal,
+                    actual: row.vaCalculado
+                });
+            } else {
+                const g = groups[groupIndex.get(key)];
+                if (!g.ramos.includes(row.nombreCobertura)) {
+                    g.ramos.push(row.nombreCobertura);
+                }
+            }
+        });
+
+        const blocks = groups.map(g => {
+            const diff = g.actual - g.anterior;
+            const isPositive = diff >= 0;
+
+            const label1 = 'Suma asegurada anterior:';
+            const label2 = isPositive ? 'Aumento:' : 'Disminución:';
+            const label3 = 'Suma asegurada actual';
+
+            const anteriorStr = fmtMoney(g.anterior);
+            const diffStr = fmtMoney(Math.abs(diff));
+            const actualStr = fmtMoney(g.actual);
+
+            const labelWidth = Math.max(label1.length, label2.length, label3.length) + 3;
+            const pad = (label) => label + ' '.repeat(labelWidth - label.length);
+
+            const line1 = `${pad(label1)}US$ ${anteriorStr}`;
+            const line2 = `${pad(label2)}US$ ${diffStr}`;
+            const line3 = `${pad(label3)}US$ ${actualStr}`;
+
+            const maxValLen = Math.max(anteriorStr.length, diffStr.length, actualStr.length);
+            const sepIndent = labelWidth + 4; // largo de "US$ "
+            const sepLine = ' '.repeat(sepIndent) + '='.repeat(maxValLen);
+
+            return [
+                `Item # ${g.itemNum}`,
+                `Ramo: ${g.ramos.join(', ')}`,
+                `Rubro: ${g.rubroNombre}`,
+                '',
+                line1,
+                line2,
+                sepLine,
+                line3
+            ].join('\n');
+        });
+
+        return blocks.join('\n\n');
+    };
+
+    const modificacionOutput = tipoMov === 'modificacion' ? buildModificacionOutput(tablaData) : "";
+
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(modificacionOutput);
+            setCopyFeedback("Copiado ✓");
+        } catch (e) {
+            setCopyFeedback("No se pudo copiar");
+        }
+        setTimeout(() => setCopyFeedback(""), 2000);
     };
 
     return (
@@ -133,9 +219,29 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
                     </button>
                 </div>
             </div>
+
+            {/* Formato de modificación */}
+            {tipoMov === 'modificacion' && (
+                <div className="row py-3">
+                    <div className="col-12">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
+                            <label className="fw-bold mb-0">Formato de modificación:</label>
+                            <div className="d-flex align-items-center gap-2">
+                                {copyFeedback && <span className="small text-success">{copyFeedback}</span>}
+                                <button type="button" className="btn btn-sm btn-outline-secondary" onClick={handleCopy}>
+                                    Copiar
+                                </button>
+                            </div>
+                        </div>
+                        <textarea
+                            readOnly
+                            value={modificacionOutput}
+                            className="form-control"
+                            style={{ fontFamily: "'Courier New', Courier, monospace", whiteSpace: 'pre', minHeight: '220px' }}
+                        />
+                    </div>
+                </div>
+            )}
         </>
     );
 }
-
-// useState must be imported in the actual file — adding import here:
-import { useState } from 'react';
