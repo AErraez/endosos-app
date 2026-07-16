@@ -103,7 +103,7 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
                                     <td><strong>{d.endoso_id}</strong></td>
                                     <td>{d.ramo}</td>
                                     <td>{d.rubro}</td>
-                                    <td className="text-end">$ {d.valor?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td className="text-end">$ {d.valor?.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td>
                                         <span className={`badge ${d.estado === "anulado" ? "bg-secondary" : "bg-success"}`}>
                                             {d.estado === "anulado" ? "ANULADO" : "ACTIVO"}
