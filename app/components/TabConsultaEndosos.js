@@ -5,23 +5,38 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
     const [showModal, setShowModal] = useState(false);
     const [selectedEndoso, setSelectedEndoso] = useState(null);
     const [filterItem, setFilterItem] = useState("TODOS");
+    const [filterRubro, setFilterRubro] = useState("TODOS");
 
     const uniqueItems = ["TODOS", ...new Set(tablaData.map(row => row.itemNum))];
 
     const prepareHistorial = (doc) => {
         if (!doc?.endosos) return [];
-        return doc.endosos.flatMap(e =>
+        return doc.endosos.flatMap((e, endosoIndex) =>
             e.detalle.map(d => ({
                 ...d,
                 endoso_id: e.endoso_id,
+                endosoIndex,
                 estado: e.estado || "activo",
                 fullEndoso: e
             }))
         );
     };
 
-    const historial = prepareHistorial(currentDoc).filter(
-        d => filterItem === "TODOS" || d.item === filterItem
+    const allHistorial = prepareHistorial(currentDoc);
+    const uniqueRubros = ["TODOS", ...new Set(
+        allHistorial
+            .filter(d => filterItem === "TODOS" || d.item === filterItem)
+            .map(d => d.rubro)
+    )];
+
+    const handleFilterItemChange = (e) => {
+        setFilterItem(e.target.value);
+        setFilterRubro("TODOS");
+    };
+
+    const historial = allHistorial.filter(d =>
+        (filterItem === "TODOS" || d.item === filterItem) &&
+        (filterRubro === "TODOS" || d.rubro === filterRubro)
     );
 
     const handleAnular = async () => {
@@ -30,6 +45,7 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
             body: JSON.stringify({
                 polizaId: currentDoc._id,
                 endosoId: selectedEndoso.endoso_id,
+                endosoIndex: selectedEndoso.endosoIndex,
                 detalle: selectedEndoso.fullEndoso.detalle
             })
         });
@@ -38,6 +54,9 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
             alert("Endoso anulado y valores actualizados.");
             setShowModal(false);
             onRefresh();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            alert(data.error || "No se pudo anular el endoso. Intente nuevamente.");
         }
     };
 
@@ -55,10 +74,20 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
             <div className="row py-2 mb-3">
                 <div className="col-md-4">
                     <label className="fw-bold">Filtrar por Item:</label>
-                    <select className="form-select" value={filterItem} onChange={(e) => setFilterItem(e.target.value)}>
+                    <select className="form-select" value={filterItem} onChange={handleFilterItemChange}>
                         {uniqueItems.map(item => (
                             <option key={item} value={item}>
                                 {item === "TODOS" ? "Ver todos los items" : `Item ${item}`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="col-md-4">
+                    <label className="fw-bold">Filtrar por Rubro:</label>
+                    <select className="form-select" value={filterRubro} onChange={(e) => setFilterRubro(e.target.value)}>
+                        {uniqueRubros.map(rubro => (
+                            <option key={rubro} value={rubro}>
+                                {rubro === "TODOS" ? "Ver todos los rubros" : rubro}
                             </option>
                         ))}
                     </select>

@@ -6,11 +6,24 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
 
     const uniqueItems = ["TODOS", ...new Set(tablaData.map(row => row.itemNum))];
     const [selectedItem, setSelectedItem] = useState("TODOS");
+    const [selectedRubro, setSelectedRubro] = useState("TODOS");
     const [copyFeedback, setCopyFeedback] = useState("");
 
-    const filteredData = selectedItem === "TODOS"
-        ? tablaData
-        : tablaData.filter(row => row.itemNum === selectedItem);
+    const uniqueRubros = ["TODOS", ...new Set(
+        tablaData
+            .filter(row => selectedItem === "TODOS" || row.itemNum === selectedItem)
+            .map(row => row.rubroNombre)
+    )];
+
+    const handleSelectedItemChange = (e) => {
+        setSelectedItem(e.target.value);
+        setSelectedRubro("TODOS");
+    };
+
+    const filteredData = tablaData.filter(row =>
+        (selectedItem === "TODOS" || row.itemNum === selectedItem) &&
+        (selectedRubro === "TODOS" || row.rubroNombre === selectedRubro)
+    );
 
     const handleTipoMovChange = (e) => {
         setTipoMov(e.target.value);
@@ -151,10 +164,20 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
                 </div>
                 <div className="col-md-4">
                     <label className="fw-bold">Filtrar por Item:</label>
-                    <select className="form-select" value={selectedItem} onChange={(e) => setSelectedItem(e.target.value)}>
+                    <select className="form-select" value={selectedItem} onChange={handleSelectedItemChange}>
                         {uniqueItems.map(item => (
                             <option key={item} value={item}>
                                 {item === "TODOS" ? "Ver todos los items" : `Item ${item}`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="col-md-4">
+                    <label className="fw-bold">Filtrar por Rubro:</label>
+                    <select className="form-select" value={selectedRubro} onChange={(e) => setSelectedRubro(e.target.value)}>
+                        {uniqueRubros.map(rubro => (
+                            <option key={rubro} value={rubro}>
+                                {rubro === "TODOS" ? "Ver todos los rubros" : rubro}
                             </option>
                         ))}
                     </select>

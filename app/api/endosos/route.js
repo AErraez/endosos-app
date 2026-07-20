@@ -3,17 +3,35 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
 export async function PATCH(request) {
-    const { polizaId, endosoId, detalle } = await request.json();
+    const { polizaId, endosoId, endosoIndex, detalle } = await request.json();
 
     try {
         const client = await clientPromise;
         const db = client.db("Data");
 
-        // 1. Mark the specific endorsement as 'anulado'
-        await db.collection("Polizas").updateOne(
-            { _id: new ObjectId(polizaId), "endosos.endoso_id": endosoId },
-            { $set: { "endosos.$.estado": "anulado" } }
+        // endoso_id isn't guaranteed unique (users can reuse the same number), so the
+        // exact array position must be used to target the right entry — otherwise a
+        // positional $ match on endoso_id can silently flip a different, already-anulado
+        // entry sharing the same id while this one never gets marked.
+        const estadoPath = `endosos.${endosoIndex}.estado`;
+        const idPath = `endosos.${endosoIndex}.endoso_id`;
+
+        // 1. Mark the specific endorsement as 'anulado', but only if it isn't already
+        const markResult = await db.collection("Polizas").updateOne(
+            {
+                _id: new ObjectId(polizaId),
+                [idPath]: endosoId,
+                [estadoPath]: { $ne: "anulado" }
+            },
+            { $set: { [estadoPath]: "anulado" } }
         );
+
+        if (markResult.matchedCount === 0) {
+            return NextResponse.json(
+                { error: "Este endoso ya fue anulado o no se encontró." },
+                { status: 409 }
+            );
+        }
 
         // 2. Subtract the values from the corresponding items
         for (const line of detalle) {
