@@ -124,7 +124,7 @@ export default function EndososPage() {
                 {/* App-level nav */}
                 <ul className="nav nav-pills mb-4">
                     <li className="nav-item">
-                        <a className="nav-link" href="https://endosos-app.onrender.com">Cláusulas</a>
+                        <a className="nav-link" href="https://aerraez-clausulas.onrender.com">Cláusulas</a>
                     </li>
                     <li className="nav-item">
                         <a className="nav-link active" href="#">Endosos Beneficiarios</a>
