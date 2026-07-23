@@ -73,7 +73,9 @@ export default function EndososPage() {
         const updatedItems = currentDoc.items.map(item => {
             const updatedCoverages = item.coberturas.map(cob => {
                 const row = tablaData.find(
-                    r => r.itemNum === item.item_id && r.rubroNombre === cob.rubro
+                    r => r.itemNum === item.item_id &&
+                         r.rubroNombre === cob.rubro &&
+                         r.nombreCobertura === cob.nombre
                 );
                 return {
                     ...cob,
