@@ -61,6 +61,12 @@ export default function RegistroPoliza() {
     const [previewDoc, setPreviewDoc] = useState(null);
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
+    const [coaseguroCedido, setCoaseguroCedido] = useState(null); // null | true | false
+    const [participacion, setParticipacion] = useState('');
+
+    const participacionNum = parseFloat(participacion);
+    const participacionValid = !isNaN(participacionNum) && participacionNum > 0 && participacionNum <= 100;
+    const coaseguroAnswered = coaseguroCedido === false || (coaseguroCedido === true && participacionValid);
 
     function handleFile(e) {
         const file = e.target.files[0];
@@ -129,6 +135,8 @@ export default function RegistroPoliza() {
             return selectedCombos.has(key);
         });
 
+        const shareFraction = coaseguroCedido ? participacionNum / 100 : 1;
+
         const itemMap = new Map();
         const seen = new Set();
         for (const row of filtered) {
@@ -139,10 +147,11 @@ export default function RegistroPoliza() {
             if (seen.has(dedupKey)) continue;
             seen.add(dedupKey);
             if (!itemMap.has(itemId)) itemMap.set(itemId, []);
+            const rawVA = parseFloat(row[14]);
             itemMap.get(itemId).push({
                 nombre,
                 rubro,
-                valor_asegurado: parseFloat(row[14]) || 0,
+                valor_asegurado: isNaN(rawVA) ? 0 : rawVA / shareFraction,
                 valor_endosado_total: 0,
                 movimiento_reciente: 0,
             });
@@ -153,7 +162,13 @@ export default function RegistroPoliza() {
             coberturas,
         }));
 
-        setPreviewDoc({ ...meta, items, endosos: [] });
+        setPreviewDoc({
+            ...meta,
+            coaseguro_cedido: coaseguroCedido,
+            participacion: coaseguroCedido ? participacionNum : 100,
+            items,
+            endosos: [],
+        });
         setStep('preview');
     }
 
@@ -187,6 +202,8 @@ export default function RegistroPoliza() {
         setSelectedCombos(new Set());
         setPreviewDoc(null);
         setError('');
+        setCoaseguroCedido(null);
+        setParticipacion('');
     }
 
     return (
@@ -227,6 +244,56 @@ export default function RegistroPoliza() {
                                 Póliza <strong>{meta.poliza}</strong> &nbsp;|&nbsp;
                                 Vigencia <strong>{meta.vigencia}</strong>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="row mb-3">
+                        <div className="col-md-6">
+                            <p className="fw-semibold mb-2">¿Es coaseguro cedido?</p>
+                            <div className="d-flex gap-3 mb-2">
+                                <div className="form-check">
+                                    <input
+                                        type="radio"
+                                        className="form-check-input"
+                                        id="coaseguroNo"
+                                        name="coaseguroCedido"
+                                        checked={coaseguroCedido === false}
+                                        onChange={() => setCoaseguroCedido(false)}
+                                    />
+                                    <label className="form-check-label" htmlFor="coaseguroNo">No</label>
+                                </div>
+                                <div className="form-check">
+                                    <input
+                                        type="radio"
+                                        className="form-check-input"
+                                        id="coaseguroSi"
+                                        name="coaseguroCedido"
+                                        checked={coaseguroCedido === true}
+                                        onChange={() => setCoaseguroCedido(true)}
+                                    />
+                                    <label className="form-check-label" htmlFor="coaseguroSi">Sí</label>
+                                </div>
+                            </div>
+                            {coaseguroCedido === true && (
+                                <div className="mb-2" style={{ maxWidth: 220 }}>
+                                    <label className="form-label small mb-1">Participación (%)</label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        min="0"
+                                        max="100"
+                                        step="0.01"
+                                        value={participacion}
+                                        onChange={(e) => setParticipacion(e.target.value)}
+                                        placeholder="Ej. 40"
+                                    />
+                                    {!participacionValid && participacion !== '' && (
+                                        <div className="form-text text-danger">
+                                            Ingrese un porcentaje mayor a 0 y hasta 100.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -282,7 +349,7 @@ export default function RegistroPoliza() {
                         </button>
                         <button
                             className="btn btn-primary"
-                            disabled={selectedCombos.size === 0}
+                            disabled={selectedCombos.size === 0 || coaseguroCedido === null || !coaseguroAnswered}
                             onClick={buildPreview}
                         >
                             Continuar
@@ -301,11 +368,17 @@ export default function RegistroPoliza() {
                                 <strong>{previewDoc.ramo}</strong> &nbsp;|&nbsp;
                                 Póliza <strong>{previewDoc.poliza}</strong> &nbsp;|&nbsp;
                                 Vigencia <strong>{previewDoc.vigencia}</strong>
+                                {previewDoc.coaseguro_cedido && (
+                                    <>
+                                        &nbsp;|&nbsp; Coaseguro cedido <strong>Sí</strong> (Participación{' '}
+                                        <strong>{previewDoc.participacion}%</strong>)
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    <p className="fw-semibold mb-2">Revise la póliza antes de confirmar:</p>
+                    <p className="fw-semibold mb-2">Revise la póliza antes de confirmar (valores ya normalizados al 100%):</p>
 
                     <div className="table-responsive mb-4">
                         <table className="table table-bordered table-hover">

@@ -148,6 +148,8 @@ export default function TabInclusion({ currentDoc, onSaved }) {
             return selectedCombos.has(key);
         });
 
+        const shareFraction = (currentDoc.participacion ?? 100) / 100;
+
         const itemMap = new Map();
         const seen = new Set();
         for (const row of filtered) {
@@ -166,10 +168,11 @@ export default function TabInclusion({ currentDoc, onSaved }) {
             if (alreadyExists) continue;
 
             if (!itemMap.has(itemId)) itemMap.set(itemId, []);
+            const rawVA = parseFloat(row[14]);
             itemMap.get(itemId).push({
                 nombre,
                 rubro,
-                valor_asegurado: parseFloat(row[14]) || 0,
+                valor_asegurado: isNaN(rawVA) ? 0 : rawVA / shareFraction,
                 valor_endosado_total: 0,
                 movimiento_reciente: 0,
             });
@@ -269,6 +272,13 @@ export default function TabInclusion({ currentDoc, onSaved }) {
                                     ⚠️ El archivo cargado corresponde a una póliza distinta a la que está
                                     gestionando (<strong>{currentDoc.ciudad} / {currentDoc.ramo} / {currentDoc.poliza} / {currentDoc.vigencia}</strong>).
                                     Verifique antes de continuar.
+                                </div>
+                            )}
+                            {currentDoc.coaseguro_cedido && (
+                                <div className="alert alert-secondary py-2 mb-0 mt-2">
+                                    ℹ️ Esta póliza es de coaseguro cedido con una participación del{' '}
+                                    <strong>{currentDoc.participacion}%</strong>. Los valores asegurados del
+                                    archivo se dividirán automáticamente por este porcentaje al incluirse.
                                 </div>
                             )}
                         </div>

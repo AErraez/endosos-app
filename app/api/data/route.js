@@ -32,7 +32,7 @@ export async function GET(request) {
 
 export async function POST(request) {
     const body = await request.json();
-    const { ciudad, ramo, poliza, vigencia, items, endosos } = body;
+    const { ciudad, ramo, poliza, vigencia, items, endosos, coaseguro_cedido, participacion } = body;
 
     try {
         const client = await clientPromise;
@@ -47,7 +47,10 @@ export async function POST(request) {
         }
 
         const result = await db.collection("Polizas").insertOne({
-            ciudad, ramo, poliza, vigencia, items, endosos: endosos ?? []
+            ciudad, ramo, poliza, vigencia,
+            coaseguro_cedido: coaseguro_cedido ?? false,
+            participacion: participacion ?? 100,
+            items, endosos: endosos ?? []
         });
         return NextResponse.json({ success: true, _id: result.insertedId });
     } catch (e) {
