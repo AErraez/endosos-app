@@ -125,6 +125,7 @@ export default function FiltrosBusqueda({ onSelectPoliza }) {
 
             {/* Table card */}
             <div className="bg-white border rounded overflow-hidden">
+                <div className="table-container" style={{ border: 'none' }}>
                 <table className="table table-hover mb-0">
                     <thead>
                         <tr className="small text-muted text-uppercase" style={{ borderBottom: '2px solid #dee2e6' }}>
@@ -168,6 +169,7 @@ export default function FiltrosBusqueda({ onSelectPoliza }) {
                         })}
                     </tbody>
                 </table>
+                </div>
                 {!loading && (
                     <div className="px-3 py-2 text-muted small border-top">{sorted.length} póliza(s)</div>
                 )}

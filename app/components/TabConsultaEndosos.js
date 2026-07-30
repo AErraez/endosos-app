@@ -95,7 +95,7 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
             </div>
 
             {/* History table */}
-            <div className="table-responsive">
+            <div className="table-responsive table-container">
                 <table className="table table-bordered table-hover">
                     <thead className="table-light">
                         <tr>
@@ -148,7 +148,7 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
             {/* Confirmation modal */}
             {showModal && (
                 <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog">
+                    <div className="modal-dialog modal-lg">
                         <div className="modal-content">
                             <div className="modal-header">
                                 <h5 className="modal-title">Confirmar Anulación</h5>
@@ -159,6 +159,28 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
                                 <p className="text-danger small">
                                     Esta acción restará los valores de todos los items afectados por este endoso.
                                 </p>
+                                <div className="table-responsive">
+                                    <table className="table table-sm table-bordered mb-0">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>Item</th>
+                                                <th>Ramo</th>
+                                                <th>Rubro</th>
+                                                <th className="text-end">Valor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedEndoso?.fullEndoso.detalle.map((d, idx) => (
+                                                <tr key={idx}>
+                                                    <td>{d.item}</td>
+                                                    <td>{d.ramo}</td>
+                                                    <td>{d.rubro}</td>
+                                                    <td className="text-end">$ {d.valor?.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                             <div className="modal-footer">
                                 <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>

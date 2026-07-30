@@ -186,7 +186,7 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
 
             {/* Table */}
             <div className="row py-3">
-                <div className="col-12 table-responsive">
+                <div className="col-12 table-responsive table-container">
                     <table className="table table-bordered table-hover">
                         <thead className="table-light">
                             <tr>
