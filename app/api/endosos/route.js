@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
 export async function PATCH(request) {
-    const { polizaId, endosoId, endosoIndex, detalle } = await request.json();
+    const { polizaId, endosoId, endosoIndex, detalle, tipo } = await request.json();
+
+    // "beneficiario" endosos move valor_endosado_total; every "movimiento de suma"
+    // subtipo (inclusión, modificación de suma, exclusión) moves valor_asegurado
+    // instead. Missing/legacy tipo is treated as "beneficiario" for back-compat.
+    const targetField = tipo === "movimiento de suma" ? "valor_asegurado" : "valor_endosado_total";
 
     try {
         const client = await clientPromise;
@@ -36,17 +41,17 @@ export async function PATCH(request) {
         // 2. Subtract the values from the corresponding items
         for (const line of detalle) {
             await db.collection("Polizas").updateOne(
-                { 
+                {
                     _id: new ObjectId(polizaId),
                     "items.item_id": line.item
                 },
-                { 
-                    $inc: { "items.$[i].coberturas.$[c].valor_endosado_total": -line.valor } 
+                {
+                    $inc: { [`items.$[i].coberturas.$[c].${targetField}`]: -line.valor }
                 },
                 {
                     arrayFilters: [
                         { "i.item_id": line.item },
-                        { "c.nombre": line.ramo, "c.rubro": line.rubro } 
+                        { "c.nombre": line.ramo, "c.rubro": line.rubro }
                     ]
                 }
             );

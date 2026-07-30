@@ -1,55 +1,6 @@
 'use client';
 import { useState } from 'react';
-import * as XLSX from 'xlsx';
-
-// Combos that start unchecked — fill in based on business rules.
-// Matching is case-insensitive and trims whitespace.
-const EXCLUDED_RUBROS = [
-"REMOCION DE ESCOMBROS","HONOR. DE ARQUIT., INGENIE. Y TOPOG.","ROTURA DE VIDRIOS Y CRISTALES","HON. DE AUDIT., CONTAD., ABOGAD. Y REVISORES",
-"DOCUMENTOS Y MODELOS","GASTOS PARA EXTINGUIR INCENDIO","CLAUSULA ELECTRICA AMPLIA","ACEITES, LUBRICANTES Y REFRIGERANTES",
-"GASTOS EXTRAORDINARIOS","TERRORISMO","ARRENDAMIENTOS","PROPIEDAD PERSONAL DE HUESPEDES","EXTINTORES","MATERIALES IMPORTADOS",
-"HURTO","FLETE AEREO","HURTO","INTERESES DE CONTRATISTAS","ROTURA DE TANQUES","GASTOS PARA AMINORAR LA PRDIDA","GASTOS ADICIONALES"
-];
-
-const EXCLUDED_COBERTURAS = [
-    "TERREMOTO","LUCRO CESANTE TERREMOTO"
-];
-
-function excelDateToYear(serial) {
-    if (!serial || isNaN(serial)) return '';
-    if (serial > 1900 && serial < 2200) return serial; // already a year
-    const date = new Date((serial - 25569) * 86400 * 1000);
-    return date.getUTCFullYear();
-}
-
-function parseXls(arrayBuffer) {
-    const wb = XLSX.read(arrayBuffer, { type: 'array' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const allRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-
-    const headerIdx = allRows.findIndex(r => String(r[0]).trim() === 'Sucursal');
-    if (headerIdx === -1) throw new Error('No se encontró la fila de encabezado (Sucursal).');
-
-    const footerIdx = allRows.findIndex(
-        (r, i) => i > headerIdx && r.some(c => String(c).includes('Page') || String(c).includes('Página'))
-    );
-    const endIdx = footerIdx === -1 ? allRows.length : footerIdx;
-
-    const dataRows = allRows
-        .slice(headerIdx + 1, endIdx)
-        .filter(r => String(r[0]).trim() !== '');
-
-    if (dataRows.length === 0) throw new Error('No se encontraron filas de datos.');
-
-    // Drop columns that are empty across every data row
-    const numCols = dataRows[0].length;
-    const emptyCols = new Set(
-        Array.from({ length: numCols }, (_, i) => i)
-            .filter(i => dataRows.every(row => String(row[i] ?? '').trim() === ''))
-    );
-
-    return dataRows.map(row => row.filter((_, i) => !emptyCols.has(i)));
-}
+import { EXCLUDED_RUBROS, EXCLUDED_COBERTURAS, excelDateToYear, parseXls } from '@/lib/xlsPoliza';
 
 function mergeItems(existingItems, newItems) {
     const merged = existingItems.map(item => ({ ...item, coberturas: [...item.coberturas] }));
@@ -71,6 +22,7 @@ export default function TabInclusion({ currentDoc, onSaved }) {
     const [uniqueCombos, setUniqueCombos] = useState([]);
     const [selectedCombos, setSelectedCombos] = useState(new Set());
     const [previewNewItems, setPreviewNewItems] = useState([]);
+    const [numEndoso, setNumEndoso] = useState('');
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
 
@@ -192,14 +144,23 @@ export default function TabInclusion({ currentDoc, onSaved }) {
         setError('');
         try {
             const mergedItems = mergeItems(currentDoc.items, previewNewItems);
+            const detalle = previewNewItems.flatMap(item =>
+                item.coberturas.map(cob => ({
+                    item: item.item_id,
+                    ramo: cob.nombre,
+                    rubro: cob.rubro,
+                    valor: cob.valor_asegurado,
+                }))
+            );
             const res = await fetch('/api/data', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     polizaId: currentDoc._id,
                     updates: mergedItems,
-                    numEndoso: '',
+                    numEndoso,
                     tipoMov: 'inclusion',
+                    detalle,
                 }),
             });
             const json = await res.json();
@@ -223,6 +184,7 @@ export default function TabInclusion({ currentDoc, onSaved }) {
         setUniqueCombos([]);
         setSelectedCombos(new Set());
         setPreviewNewItems([]);
+        setNumEndoso('');
         setError('');
     }
 
@@ -395,13 +357,28 @@ export default function TabInclusion({ currentDoc, onSaved }) {
                         </>
                     )}
 
+                    {totalNewCoberturas > 0 && (
+                        <div className="row py-3 align-items-end mb-2 bg-light rounded p-3">
+                            <div className="col-md-4">
+                                <label className="fw-bold">Número de Endoso:</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    value={numEndoso}
+                                    onChange={(e) => setNumEndoso(e.target.value)}
+                                    placeholder="Ej: END-103"
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     <div className="d-flex gap-2">
                         <button className="btn btn-secondary" onClick={() => setStep('select')}>
                             Volver
                         </button>
                         <button
                             className="btn btn-success px-5"
-                            disabled={saving || totalNewCoberturas === 0}
+                            disabled={saving || totalNewCoberturas === 0 || numEndoso.trim() === ''}
                             onClick={handleSave}
                         >
                             {saving ? 'Guardando…' : 'Confirmar e Incluir'}

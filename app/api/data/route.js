@@ -61,7 +61,7 @@ export async function POST(request) {
 
 export async function PATCH(request) {
     const body = await request.json();
-    const { polizaId, updates, numEndoso, tipoMov } = body;
+    const { polizaId, updates, numEndoso, tipoMov, detalle } = body;
 
     try {
         const client = await clientPromise;
@@ -70,28 +70,41 @@ export async function PATCH(request) {
 
         // 1. Prepare the update for the 'items' array values
         const updateOps = {
-            $set: { 
+            $set: {
                 "items": updates // Send the fully recalculated items array from frontend
             }
         };
 
-        // 2. If it's an endoso, push to the history array
-        if (tipoMov === "endoso") {
-            const endosoDetalle = updates.flatMap(item => 
-                item.coberturas.map(cob => ({
-                    item: item.item_id,
-                    ramo: cob.nombre,
-                    rubro: cob.rubro,
-                    valor: cob.movimiento_reciente // We'll add this field in frontend
-                })).filter(d => d.valor !== 0) // Only save if there was a change
-            );
+        // Rows the frontend recomputed this session carry their delta in
+        // movimiento_reciente (0 for anything untouched), so a sweep across every
+        // item/cobertura only picks up what actually changed here.
+        const buildDetalleFromMovimientos = () => updates.flatMap(item =>
+            item.coberturas.map(cob => ({
+                item: item.item_id,
+                ramo: cob.nombre,
+                rubro: cob.rubro,
+                valor: cob.movimiento_reciente
+            })).filter(d => d.valor !== 0)
+        );
 
-            updateOps.$push = {
-                endosos: {
-                    endoso_id: numEndoso,
-                    detalle: endosoDetalle
-                }
-            };
+        // 2. Every movement gets recorded in the endoso history, under the
+        // "beneficiario" bucket (Endoso beneficiario) or the "movimiento de suma"
+        // bucket (inclusiones, aumentos/modificaciones de suma, exclusiones).
+        let endosoEntry = null;
+        if (tipoMov === "endoso") {
+            endosoEntry = { endoso_id: numEndoso, tipo: "beneficiario", detalle: buildDetalleFromMovimientos() };
+        } else if (tipoMov === "modificacion") {
+            endosoEntry = { endoso_id: numEndoso, tipo: "movimiento de suma", subtipo: "modificacion de suma", detalle: buildDetalleFromMovimientos() };
+        } else if (tipoMov === "inclusion") {
+            // Inclusion adds brand-new coverages rather than moving an existing one,
+            // so TabInclusion sends the exact detalle itself instead of relying on
+            // movimiento_reciente (which would also resurface stale values left over
+            // on unrelated, already-existing coverages).
+            endosoEntry = { endoso_id: numEndoso, tipo: "movimiento de suma", subtipo: "inclusion", detalle: detalle ?? [] };
+        }
+
+        if (endosoEntry) {
+            updateOps.$push = { endosos: endosoEntry };
         }
 
         await db.collection("Polizas").updateOne(

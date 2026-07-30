@@ -1,7 +1,14 @@
 'use client';
 import { useState } from 'react';
 
+const SUBTIPO_LABELS = {
+    inclusion: "Inclusión",
+    exclusion: "Exclusión",
+    "modificacion de suma": "Modificación de suma",
+};
+
 export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh }) {
+    const [historialTab, setHistorialTab] = useState("beneficiario"); // beneficiario | movimiento
     const [showModal, setShowModal] = useState(false);
     const [selectedEndoso, setSelectedEndoso] = useState(null);
     const [filterItem, setFilterItem] = useState("TODOS");
@@ -17,24 +24,36 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
                 endoso_id: e.endoso_id,
                 endosoIndex,
                 estado: e.estado || "activo",
+                tipo: e.tipo || "beneficiario",
+                subtipo: e.subtipo,
                 fullEndoso: e
             }))
         );
     };
 
     const allHistorial = prepareHistorial(currentDoc);
+    const pool = allHistorial.filter(d =>
+        historialTab === "beneficiario" ? d.tipo === "beneficiario" : d.tipo === "movimiento de suma"
+    );
+
     const uniqueRubros = ["TODOS", ...new Set(
-        allHistorial
+        pool
             .filter(d => filterItem === "TODOS" || d.item === filterItem)
             .map(d => d.rubro)
     )];
+
+    const handleHistorialTabChange = (tab) => {
+        setHistorialTab(tab);
+        setFilterItem("TODOS");
+        setFilterRubro("TODOS");
+    };
 
     const handleFilterItemChange = (e) => {
         setFilterItem(e.target.value);
         setFilterRubro("TODOS");
     };
 
-    const historial = allHistorial.filter(d =>
+    const historial = pool.filter(d =>
         (filterItem === "TODOS" || d.item === filterItem) &&
         (filterRubro === "TODOS" || d.rubro === filterRubro)
     );
@@ -46,7 +65,8 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
                 polizaId: currentDoc._id,
                 endosoId: selectedEndoso.endoso_id,
                 endosoIndex: selectedEndoso.endosoIndex,
-                detalle: selectedEndoso.fullEndoso.detalle
+                detalle: selectedEndoso.fullEndoso.detalle,
+                tipo: selectedEndoso.tipo
             })
         });
 
@@ -70,6 +90,26 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
 
     return (
         <>
+            {/* Sub-tabs */}
+            <ul className="nav nav-tabs mb-3">
+                <li className="nav-item">
+                    <button
+                        className={`nav-link ${historialTab === "beneficiario" ? "active fw-semibold" : ""}`}
+                        onClick={() => handleHistorialTabChange("beneficiario")}
+                    >
+                        Beneficiario
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button
+                        className={`nav-link ${historialTab === "movimiento" ? "active fw-semibold" : ""}`}
+                        onClick={() => handleHistorialTabChange("movimiento")}
+                    >
+                        Movimientos de Suma
+                    </button>
+                </li>
+            </ul>
+
             {/* Filter */}
             <div className="row py-2 mb-3">
                 <div className="col-md-4">
@@ -102,6 +142,7 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
                             <th>Acción</th>
                             <th>Item</th>
                             <th>Endoso ID</th>
+                            {historialTab === "movimiento" && <th>Subtipo</th>}
                             <th>Ramo</th>
                             <th>Rubro</th>
                             <th className="text-end">Valor</th>
@@ -111,7 +152,7 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
                     <tbody>
                         {historial.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="text-center text-muted py-4">
+                                <td colSpan={historialTab === "movimiento" ? 8 : 7} className="text-center text-muted py-4">
                                     No hay endosos registrados para esta póliza.
                                 </td>
                             </tr>
@@ -130,6 +171,13 @@ export default function TabConsultaEndosos({ currentDoc, tablaData, onRefresh })
                                     </td>
                                     <td>{d.item}</td>
                                     <td><strong>{d.endoso_id}</strong></td>
+                                    {historialTab === "movimiento" && (
+                                        <td>
+                                            <span className="badge bg-info text-dark">
+                                                {SUBTIPO_LABELS[d.subtipo] || d.subtipo}
+                                            </span>
+                                        </td>
+                                    )}
                                     <td>{d.ramo}</td>
                                     <td>{d.rubro}</td>
                                     <td className="text-end">$ {d.valor?.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>

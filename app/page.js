@@ -4,6 +4,7 @@ import FiltrosBusqueda from './components/FiltrosBusqueda';
 import TabMovimientos from './components/TabMovimientos';
 import TabConsultaEndosos from './components/TabConsultaEndosos';
 import TabInclusion from './components/TabInclusion';
+import TabExclusion from './components/TabExclusion';
 import RegistroPoliza from './components/RegistroPoliza';
 
 export default function EndososPage() {
@@ -186,6 +187,14 @@ export default function EndososPage() {
                                         ➕ Inclusión
                                     </button>
                                 </li>
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "exclusion" ? "active fw-semibold" : ""}`}
+                                        onClick={() => setActiveTab("exclusion")}
+                                    >
+                                        🚫 Exclusión
+                                    </button>
+                                </li>
                             </ul>
 
                             <div className="border border-top-0 rounded-bottom p-3">
@@ -213,6 +222,13 @@ export default function EndososPage() {
 
                                 {activeTab === "inclusion" && (
                                     <TabInclusion
+                                        currentDoc={currentDoc}
+                                        onSaved={() => fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia })}
+                                    />
+                                )}
+
+                                {activeTab === "exclusion" && (
+                                    <TabExclusion
                                         currentDoc={currentDoc}
                                         onSaved={() => fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia })}
                                     />
