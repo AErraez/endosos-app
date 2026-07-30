@@ -17,6 +17,8 @@ export default function RegistroManual() {
     const [currentDoc, setCurrentDoc] = useState(null);
     const [loadingDoc, setLoadingDoc] = useState(false);
 
+    const [mode, setMode] = useState('endoso'); // endoso | editar
+
     const [tipo, setTipo] = useState('movimiento de suma');
     const [subtipo, setSubtipo] = useState('inclusion');
     const [endosoId, setEndosoId] = useState('');
@@ -24,6 +26,10 @@ export default function RegistroManual() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    // ── Direct valor asegurado editor ────────────────────────────────────
+    const [editValues, setEditValues] = useState({});
+    const [filterItemEdit, setFilterItemEdit] = useState('TODOS');
 
     // ── Manual row entry (beneficiario / modificación de suma / exclusión) ──
     const [rows, setRows] = useState([emptyRow()]);
@@ -63,6 +69,8 @@ export default function RegistroManual() {
             } else {
                 setCurrentDoc(data);
                 resetAllFlows();
+                setEditValues({});
+                setFilterItemEdit('TODOS');
             }
         } catch (err) {
             setError('Error de conexión: ' + err.message);
@@ -96,6 +104,66 @@ export default function RegistroManual() {
             return { item: r.item_id, ramo: nombre, rubro, valor: parseFloat(r.valor) };
         });
         await submitEndoso(detalle);
+    };
+
+    // ── Direct valor asegurado editor helpers ───────────────────────────
+    const cobKey = (itemId, rubro, nombre) => `${itemId}||${rubro}||${nombre}`;
+
+    const updateEditValue = (key, value) => {
+        setEditValues(prev => ({ ...prev, [key]: value }));
+    };
+
+    const buildEditedItems = () => currentDoc.items.map(item => ({
+        ...item,
+        coberturas: item.coberturas.map(cob => {
+            const key = cobKey(item.item_id, cob.rubro, cob.nombre);
+            const edited = editValues[key];
+            const valor_asegurado = edited !== undefined && edited !== '' && !isNaN(parseFloat(edited))
+                ? parseFloat(edited)
+                : cob.valor_asegurado;
+            return { ...cob, valor_asegurado };
+        }),
+    }));
+
+    const changedRows = Object.entries(editValues).filter(([key, val]) => {
+        if (val === '' || isNaN(parseFloat(val))) return false;
+        const [itemId, rubro, nombre] = key.split('||');
+        const cob = currentDoc.items.find(i => i.item_id === itemId)?.coberturas.find(c => c.rubro === rubro && c.nombre === nombre);
+        return cob && parseFloat(val) !== cob.valor_asegurado;
+    });
+
+    const isSaveEditsDisabled = saving || changedRows.length === 0;
+
+    const handleSaveEdits = async () => {
+        if (isSaveEditsDisabled) return;
+        if (!window.confirm(
+            `¿Guardar ${changedRows.length} cambio(s) de valor asegurado? Esto sobrescribe los valores directamente y no queda registrado en el historial de endosos.`
+        )) return;
+
+        const updatedItems = buildEditedItems();
+
+        setSaving(true);
+        setError('');
+        setSuccess('');
+        try {
+            const res = await fetch('/api/data', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ polizaId: currentDoc._id, updates: updatedItems }),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setError(json.error || 'No se pudo guardar los cambios.');
+            } else {
+                setCurrentDoc({ ...currentDoc, items: updatedItems });
+                setEditValues({});
+                setSuccess(`${changedRows.length} valor(es) asegurado(s) actualizado(s).`);
+            }
+        } catch (err) {
+            setError('Error de conexión: ' + err.message);
+        } finally {
+            setSaving(false);
+        }
     };
 
     // ── File-driven inclusion helpers ───────────────────────────────────
@@ -285,6 +353,103 @@ export default function RegistroManual() {
                             Vigencia <strong>{currentDoc.vigencia}</strong>
                         </div>
 
+                        <ul className="nav nav-pills mb-3">
+                            <li className="nav-item">
+                                <button
+                                    className={`nav-link ${mode === 'endoso' ? 'active fw-semibold' : ''}`}
+                                    onClick={() => setMode('endoso')}
+                                >
+                                    Registrar Endoso Histórico
+                                </button>
+                            </li>
+                            <li className="nav-item">
+                                <button
+                                    className={`nav-link ${mode === 'editar' ? 'active fw-semibold' : ''}`}
+                                    onClick={() => setMode('editar')}
+                                >
+                                    Editar Valores Asegurados
+                                </button>
+                            </li>
+                        </ul>
+
+                        {mode === 'editar' && (
+                            <>
+                                <div className="alert alert-warning py-2 mb-3">
+                                    ⚠️ Esto sobrescribe el valor asegurado directamente en la póliza. No queda
+                                    registrado ningún endoso en el historial.
+                                </div>
+
+                                <div className="row py-2 mb-3">
+                                    <div className="col-md-4">
+                                        <label className="fw-bold">Filtrar por Item:</label>
+                                        <select
+                                            className="form-select"
+                                            value={filterItemEdit}
+                                            onChange={(e) => setFilterItemEdit(e.target.value)}
+                                        >
+                                            <option value="TODOS">Ver todos los items</option>
+                                            {currentDoc.items.map(i => (
+                                                <option key={i.item_id} value={i.item_id}>Item {i.item_id}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="table-responsive table-container mb-3">
+                                    <table className="table table-bordered table-hover">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>Item</th>
+                                                <th>Rubro</th>
+                                                <th>Cobertura</th>
+                                                <th className="text-end">Valor Asegurado Actual</th>
+                                                <th style={{ width: 220 }}>Nuevo Valor Asegurado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {currentDoc.items
+                                                .filter(item => filterItemEdit === 'TODOS' || item.item_id === filterItemEdit)
+                                                .flatMap(item => item.coberturas.map((cob, ci) => {
+                                                    const key = cobKey(item.item_id, cob.rubro, cob.nombre);
+                                                    const value = editValues[key] ?? String(cob.valor_asegurado);
+                                                    const isChanged = changedRows.some(([k]) => k === key);
+                                                    return (
+                                                        <tr key={`${item.item_id}-${ci}`} className={isChanged ? 'table-warning' : ''}>
+                                                            <td>{item.item_id}</td>
+                                                            <td>{cob.rubro}</td>
+                                                            <td>{cob.nombre}</td>
+                                                            <td className="text-end">
+                                                                $ {cob.valor_asegurado.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </td>
+                                                            <td>
+                                                                <input
+                                                                    type="number"
+                                                                    className="form-control"
+                                                                    value={value}
+                                                                    onChange={(e) => updateEditValue(key, e.target.value)}
+                                                                />
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                }))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="d-flex justify-content-end">
+                                    <button
+                                        className="btn btn-danger px-5"
+                                        disabled={isSaveEditsDisabled}
+                                        onClick={handleSaveEdits}
+                                    >
+                                        {saving ? 'Guardando…' : `Guardar Cambios${changedRows.length > 0 ? ` (${changedRows.length})` : ''}`}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {mode === 'endoso' && (
+                        <>
                         <div className="row g-3 mb-3">
                             <div className="col-md-3">
                                 <label className="fw-bold">Tipo:</label>
@@ -572,6 +737,8 @@ export default function RegistroManual() {
                                     </button>
                                 </div>
                             </>
+                        )}
+                        </>
                         )}
                     </div>
                 )}
