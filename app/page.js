@@ -6,6 +6,7 @@ import TabConsultaEndosos from './components/TabConsultaEndosos';
 import TabInclusion from './components/TabInclusion';
 import TabExclusion from './components/TabExclusion';
 import RegistroPoliza from './components/RegistroPoliza';
+import { parseFlexibleNumber } from '@/lib/parseFlexibleNumber';
 
 export default function EndososPage() {
     // ── Data state ────────────────────────────────────────────────
@@ -82,7 +83,7 @@ export default function EndososPage() {
                     ...cob,
                     valor_asegurado: row.vaCalculado,
                     valor_endosado_total: row.veCalculado,
-                    movimiento_reciente: parseFloat(row.movimiento) || 0
+                    movimiento_reciente: parseFlexibleNumber(row.movimiento) || 0
                 };
             });
             return { ...item, coberturas: updatedCoverages };

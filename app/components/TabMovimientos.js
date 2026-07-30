@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { parseFlexibleNumber } from '@/lib/parseFlexibleNumber';
 
 export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTipoMov, numEndoso, setNumEndoso, onGuardar, isGuardarDisabled, isSaving }) {
 
@@ -38,7 +39,7 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
     };
 
     const handleInputChange = (originalIndex, value) => {
-        const valMov = parseFloat(value) || 0;
+        const valMov = parseFlexibleNumber(value) || 0;
         const newData = [...tablaData];
         const item = newData[originalIndex];
 
@@ -68,7 +69,7 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
 
     const buildModificacionOutput = (data) => {
         // Solo filas realmente modificadas
-        const movidas = data.filter(row => (parseFloat(row.movimiento) || 0) !== 0);
+        const movidas = data.filter(row => (parseFlexibleNumber(row.movimiento) || 0) !== 0);
 
         // Agrupar por Item (dirección) + Rubro, combinando coberturas (ramo) SOLO
         // cuando anterior, movimiento y actual coinciden exactamente
@@ -211,10 +212,12 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
                                         <td>{row.rubroNombre}</td>
                                         <td>
                                             <input
-                                                type="number"
+                                                type="text"
+                                                inputMode="decimal"
                                                 className={`form-control form-control-sm ${row.error ? 'is-invalid' : ''}`}
                                                 value={row.movimiento}
                                                 onChange={(e) => handleInputChange(originalIndex, e.target.value)}
+                                                placeholder="0.00"
                                             />
                                             {row.error && <div className="invalid-feedback d-block small">{row.error}</div>}
                                         </td>

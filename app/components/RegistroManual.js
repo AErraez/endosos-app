@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import FiltrosBusqueda from './FiltrosBusqueda';
 import { EXCLUDED_RUBROS, EXCLUDED_COBERTURAS, excelDateToYear, parseXls } from '@/lib/xlsPoliza';
+import { parseFlexibleNumber } from '@/lib/parseFlexibleNumber';
 
 const SUBTIPOS = [
     { value: 'inclusion', label: 'Inclusión' },
@@ -96,12 +97,12 @@ export default function RegistroManual() {
     const addRow = () => setRows(prev => [...prev, emptyRow()]);
     const removeRow = (idx) => setRows(prev => prev.filter((_, i) => i !== idx));
 
-    const rowsValid = rows.length > 0 && rows.every(r => r.item_id && r.comboKey && r.valor !== '' && !isNaN(parseFloat(r.valor)));
+    const rowsValid = rows.length > 0 && rows.every(r => r.item_id && r.comboKey && r.valor !== '' && !isNaN(parseFlexibleNumber(r.valor)));
 
     const handleSubmitManual = async () => {
         const detalle = rows.map(r => {
             const [rubro, nombre] = r.comboKey.split('||');
-            return { item: r.item_id, ramo: nombre, rubro, valor: parseFloat(r.valor) };
+            return { item: r.item_id, ramo: nombre, rubro, valor: parseFlexibleNumber(r.valor) };
         });
         await submitEndoso(detalle);
     };
@@ -118,18 +119,18 @@ export default function RegistroManual() {
         coberturas: item.coberturas.map(cob => {
             const key = cobKey(item.item_id, cob.rubro, cob.nombre);
             const edited = editValues[key];
-            const valor_asegurado = edited !== undefined && edited !== '' && !isNaN(parseFloat(edited))
-                ? parseFloat(edited)
+            const valor_asegurado = edited !== undefined && edited !== '' && !isNaN(parseFlexibleNumber(edited))
+                ? parseFlexibleNumber(edited)
                 : cob.valor_asegurado;
             return { ...cob, valor_asegurado };
         }),
     }));
 
     const changedRows = Object.entries(editValues).filter(([key, val]) => {
-        if (val === '' || isNaN(parseFloat(val))) return false;
+        if (val === '' || isNaN(parseFlexibleNumber(val))) return false;
         const [itemId, rubro, nombre] = key.split('||');
         const cob = currentDoc.items.find(i => i.item_id === itemId)?.coberturas.find(c => c.rubro === rubro && c.nombre === nombre);
-        return cob && parseFloat(val) !== cob.valor_asegurado;
+        return cob && parseFlexibleNumber(val) !== cob.valor_asegurado;
     });
 
     const isSaveEditsDisabled = saving || changedRows.length === 0;
@@ -423,7 +424,8 @@ export default function RegistroManual() {
                                                             </td>
                                                             <td>
                                                                 <input
-                                                                    type="number"
+                                                                    type="text"
+                                                                    inputMode="decimal"
                                                                     className="form-control"
                                                                     value={value}
                                                                     onChange={(e) => updateEditValue(key, e.target.value)}
@@ -701,7 +703,8 @@ export default function RegistroManual() {
                                                         </td>
                                                         <td>
                                                             <input
-                                                                type="number"
+                                                                type="text"
+                                                                inputMode="decimal"
                                                                 className="form-control"
                                                                 value={row.valor}
                                                                 onChange={(e) => updateRow(idx, 'valor', e.target.value)}
