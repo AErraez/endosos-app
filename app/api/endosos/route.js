@@ -1,6 +1,7 @@
 import clientPromise from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+import { round2 } from "@/lib/money";
 
 export async function PATCH(request) {
     const { polizaId, endosoId, endosoIndex, detalle, tipo } = await request.json();
@@ -46,7 +47,7 @@ export async function PATCH(request) {
                     "items.item_id": line.item
                 },
                 {
-                    $inc: { [`items.$[i].coberturas.$[c].${targetField}`]: -line.valor }
+                    $inc: { [`items.$[i].coberturas.$[c].${targetField}`]: -round2(line.valor) }
                 },
                 {
                     arrayFilters: [

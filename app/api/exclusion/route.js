@@ -1,6 +1,7 @@
 import clientPromise from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+import { round2 } from "@/lib/money";
 
 export async function PATCH(request) {
     const { polizaId, itemIds, numEndoso } = await request.json();
@@ -32,14 +33,14 @@ export async function PATCH(request) {
                         item: item.item_id,
                         ramo: cob.nombre,
                         rubro: cob.rubro,
-                        valor: -cob.valor_asegurado,
+                        valor: round2(-cob.valor_asegurado),
                     });
                 }
                 return {
                     ...cob,
                     valor_asegurado: 0,
                     valor_endosado_total: 0,
-                    movimiento_reciente: -cob.valor_asegurado,
+                    movimiento_reciente: round2(-cob.valor_asegurado),
                 };
             });
 

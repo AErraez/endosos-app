@@ -1,6 +1,7 @@
 import clientPromise from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+import { roundDetalle } from "@/lib/money";
 
 // Backfills a historical endoso into the history array only. Unlike /api/data
 // and /api/exclusion, this never touches `items` — it exists purely to register
@@ -18,7 +19,7 @@ export async function PATCH(request) {
         tipo,
         ...(tipo === "movimiento de suma" ? { subtipo } : {}),
         ...(estado === "anulado" ? { estado: "anulado" } : {}),
-        detalle,
+        detalle: roundDetalle(detalle),
     };
 
     try {

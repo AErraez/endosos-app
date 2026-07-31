@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { parseFlexibleNumber } from '@/lib/parseFlexibleNumber';
+import { round2 } from '@/lib/money';
 
 export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTipoMov, numEndoso, setNumEndoso, onGuardar, isGuardarDisabled, isSaving }) {
 
@@ -39,20 +40,20 @@ export default function TabMovimientos({ tablaData, setTablaData, tipoMov, setTi
     };
 
     const handleInputChange = (originalIndex, value) => {
-        const valMov = parseFlexibleNumber(value) || 0;
+        const valMov = round2(parseFlexibleNumber(value) || 0);
         const newData = [...tablaData];
         const item = newData[originalIndex];
 
         if (tipoMov === 'modificacion') {
-            item.vaCalculado = item.vaOriginal + valMov;
-            item.error = item.vaCalculado < item.veOriginal
+            item.vaCalculado = round2(item.vaOriginal + valMov);
+            item.error = item.vaCalculado < round2(item.veOriginal)
                 ? "Suma Asegurada no puede ser menor a Suma Endosada."
                 : "";
         } else {
-            item.veCalculado = item.veOriginal + valMov;
+            item.veCalculado = round2(item.veOriginal + valMov);
             item.error = valMov < 0
                 ? "Valores negativos no permitidos."
-                : item.veCalculado > item.vaOriginal
+                : item.veCalculado > round2(item.vaOriginal)
                     ? "Suma Endosada no puede superar la Asegurada."
                     : "";
         }

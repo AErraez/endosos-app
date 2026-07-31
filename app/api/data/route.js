@@ -1,5 +1,6 @@
 import clientPromise from "@/lib/mongodb";
 import { NextResponse } from "next/server";
+import { round2, roundItems, roundEndosos, roundDetalle } from "@/lib/money";
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
@@ -49,8 +50,8 @@ export async function POST(request) {
         const result = await db.collection("Polizas").insertOne({
             ciudad, ramo, poliza, vigencia,
             coaseguro_cedido: coaseguro_cedido ?? false,
-            participacion: participacion ?? 100,
-            items, endosos: endosos ?? []
+            participacion: round2(participacion ?? 100),
+            items: roundItems(items), endosos: roundEndosos(endosos ?? [])
         });
         return NextResponse.json({ success: true, _id: result.insertedId });
     } catch (e) {
@@ -69,16 +70,17 @@ export async function PATCH(request) {
         const { ObjectId } = require('mongodb');
 
         // 1. Prepare the update for the 'items' array values
+        const roundedUpdates = roundItems(updates);
         const updateOps = {
             $set: {
-                "items": updates // Send the fully recalculated items array from frontend
+                "items": roundedUpdates // Send the fully recalculated items array from frontend
             }
         };
 
         // Rows the frontend recomputed this session carry their delta in
         // movimiento_reciente (0 for anything untouched), so a sweep across every
         // item/cobertura only picks up what actually changed here.
-        const buildDetalleFromMovimientos = () => updates.flatMap(item =>
+        const buildDetalleFromMovimientos = () => roundedUpdates.flatMap(item =>
             item.coberturas.map(cob => ({
                 item: item.item_id,
                 ramo: cob.nombre,
@@ -100,7 +102,7 @@ export async function PATCH(request) {
             // so TabInclusion sends the exact detalle itself instead of relying on
             // movimiento_reciente (which would also resurface stale values left over
             // on unrelated, already-existing coverages).
-            endosoEntry = { endoso_id: numEndoso, tipo: "movimiento de suma", subtipo: "inclusion", detalle: detalle ?? [] };
+            endosoEntry = { endoso_id: numEndoso, tipo: "movimiento de suma", subtipo: "inclusion", detalle: roundDetalle(detalle) };
         }
 
         if (endosoEntry) {

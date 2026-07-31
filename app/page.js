@@ -26,7 +26,7 @@ export default function EndososPage() {
     const [sectionTab, setSectionTab] = useState("gestionar");
 
     // ── Handlers ──────────────────────────────────────────────────
-    const fetchPoliza = async ({ ciudad, ramo, poliza, vigencia }) => {
+    const fetchPoliza = async ({ ciudad, ramo, poliza, vigencia, resetMovState = true }) => {
         const res = await fetch(
             `/api/data?ciudad=${encodeURIComponent(ciudad)}&ramo=${encodeURIComponent(ramo)}&poliza=${encodeURIComponent(poliza)}&vigencia=${encodeURIComponent(vigencia)}`
         );
@@ -63,7 +63,9 @@ export default function EndososPage() {
         setTablaData(flattened);
         setBusquedaRealizada(true);
         setNumEndoso("");
-        setTipoMov("endoso");
+        if (resetMovState) {
+            setTipoMov("endoso");
+        }
     };
 
     const handleSelectPoliza = (p) => fetchPoliza({ ciudad: p.ciudad, ramo: p.ramo, poliza: p.poliza, vigencia: p.vigencia });
@@ -102,7 +104,7 @@ export default function EndososPage() {
 
             if (res.ok) {
                 alert("Guardado exitosamente");
-                await fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia });
+                await fetchPoliza({ ciudad: currentDoc.ciudad, ramo: currentDoc.ramo, poliza: currentDoc.poliza, vigencia: currentDoc.vigencia, resetMovState: false });
             }
         } finally {
             setIsSaving(false);
